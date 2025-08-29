@@ -1,5 +1,9 @@
 import datetime as dt
+import locale
 from .page import Page
+
+# Locale auf Deutsch setzen für Monatsnamen
+locale.setlocale(locale.LC_TIME, "de_DE.UTF-8")
 
 
 class CalendarPage(Page):
@@ -21,16 +25,10 @@ class CalendarPage(Page):
         hours = []
         temps = []
         precip_percents = []
-        for forecast in hourly_forecasts:
-            hour = ""
-            try:
-                hour = forecast["dt"].strftime("%-I")
-            except ValueError as ve:
-                # platform-specific formatting error
-                #self.log.warning(str(ve))
-                hour = forecast["dt"].strftime("%I")
 
-            hour = hour + forecast["dt"].strftime("%p").lower()
+        # Stunden im 24h-Format
+        for forecast in hourly_forecasts:
+            hour = forecast["dt"].strftime("%H:00")  # 24-Stunden-Format
             hours.append(hour)
             temps.append(forecast["temperature"]["value"])
             precip_percents.append(forecast["rain_probability"])
@@ -41,7 +39,7 @@ class CalendarPage(Page):
         now_date = now.date()
 
         a("<!DOCTYPE html>")
-        with a.html(lang="en"):
+        with a.html(lang="de"):
             with a.head():
                 a.meta(
                     charset="utf-8",
@@ -59,18 +57,21 @@ class CalendarPage(Page):
                 with a.div(klass="bg-container"):
                     with a.div(id="top-banner", klass="container"):
                         with a.div():
+                            # Tag
                             a.h3(
                                 id="date",
                                 klass="numcircle text-center",
                                 _t=now_date.day,
                             )
 
+                            # Monat auf Deutsch
                             a.h3(
                                 id="month",
                                 klass="month text-center text-uppercase",
                                 _t=now_date.strftime("%B"),
                             )
 
+                        # Temperatur
                         a.h4(
                             id="temp",
                             klass="numcircle text-center",
@@ -78,36 +79,25 @@ class CalendarPage(Page):
                             + daily_summary["temperature"]["unit"],
                         )
 
+                        # Wettericon
                         with a.div(id="icon-container", klass="numcircle"):
                             a.img(src=daily_summary["icon"])
 
+                # Karte
                 with a.div(id="map-container"):
                     a.img(src=map_url, id="map")
 
+                # Stunden-Vorhersage-Tabelle
                 with a.div(klass="bg-container"):
                     with a.div(id="bottom-banner", klass="container"):
                         with a.div(id="hourly-forecasts"):
                             with a.table():
                                 with a.thead(klass="forecast-hour"):
                                     with a.tr():
-                                        for forecast in hourly_forecasts:
+                                        # Stunden in 24h-Format
+                                        for hour in hours:
                                             with a.td(klass="hour"):
-                                                hour = ""
-                                                try:
-                                                    hour = forecast["dt"].strftime(
-                                                        "%-I"
-                                                    )
-                                                except ValueError as ve:
-                                                    # platform-specific formatting error
-                                                    self.log.warning(str(ve))
-                                                    hour = forecast["dt"].strftime("%I")
-
-                                                a(
-                                                    hour
-                                                    + forecast["dt"]
-                                                    .strftime("%p")
-                                                    .lower()
-                                                )
+                                                a(hour)
 
                                 with a.tbody(klass="hourly-forecasts-forecast"):
                                     with a.tr():
@@ -120,6 +110,7 @@ class CalendarPage(Page):
 
                         a.canvas(id="rain-temp-chart", height="100")
 
+                # Chart.js Script unverändert
                 with a.script():
                     a("""
                         Chart.defaults.scale.gridLines.display = false;
